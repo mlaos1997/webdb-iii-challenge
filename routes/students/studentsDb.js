@@ -1,26 +1,24 @@
-const knex = require('knex');
-knexConfig = require('../../knexfile.js');
-const db = knex(knexConfig.development);
+const db = require('../../data/dbConfig.js');
 
 module.exports = {
-    find,
-    findById,
+    get,
+    getById,
     insert,
     update,
     remove
 };
 
-const find = () => {
+function get() {
     return db('students');
-};
+}
 
-const getById = id => {
+function getById(id) {
     return db('students')
     .where({ id })
     .first();
 };
 
-const insert = cohort => {
+function insert(cohort) {
     return db('students')
     .insert(cohort)
     .then(ids => {
@@ -28,13 +26,13 @@ const insert = cohort => {
     });
 }
 
-const update = (id, changes) => {
+function update(id, changes) {
     return db('students')
     .where({ id })
     .update(changes);
 }
 
-const remove = id => {
+function remove(id) {
     return db('students')
     .where({ id })
     .del();

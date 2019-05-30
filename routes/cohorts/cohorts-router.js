@@ -1,16 +1,19 @@
 const express = require('express');
-const knex = require('knex');
+const cohortsDb = require('../cohorts/cohortsDb.js');
 
 const router = express.Router();
 
-const knexConfig = {
-    client: 'sqlite3',
-    connection: {
-        filename: './data/lambda.sqlite3' // path from root folder
-    },
-    useNullAsDefault: true
-};
-
-const db = knex(knexConfig);
-
 // endpoints here
+router.get('/', async(req, res) => {
+    try {
+        const cohorts = await cohortsDb.get();
+        if(Object.keys(cohorts) === 0) {
+            res.status(400).json({ message: 'Could not retrieve cohorts from database' })
+        }
+        res.status(200).json(cohorts);
+    } catch(err) {
+        res.status(500).json({ err });
+    };
+});
+
+module.exports = router;
