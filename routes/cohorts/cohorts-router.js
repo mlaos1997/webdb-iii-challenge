@@ -1,24 +1,26 @@
 const express = require('express');
-const cohortsDb = require('../cohorts/cohortsDb.js');
+const cohortsDb = require('./cohortsDb.js');
 
 const router = express.Router();
+
+const sendUserError = (status, message, res) => {
+    res
+        .status(status)
+        .json({errorMessage: message});
+};
 
 // endpoints here
 router.get('/', async(req, res) => {
     try {
         const cohorts = await cohortsDb.get();
-        if (Object.keys(cohorts) === 0) {
-            res
-                .status(400)
-                .json({message: 'Could not retrieve cohorts from database'})
+        if (Object.keys(cohorts).length === 0) {
+            sendUserError(400, 'Could not retrieve cohorts from database', res);
         }
         res
             .status(200)
             .json(cohorts);
     } catch (err) {
-        res
-            .status(500)
-            .json({err});
+        sendUserError(500, err, res);
     };
 });
 
@@ -31,54 +33,51 @@ router.get('/:id', async(req, res) => {
                 .status(200)
                 .json(cohort);
         } else {
-            res
-                .status(404)
-                .json({message: 'The cohort with the specified id could not be found'});
+            sendUserError(400, 'Could not retrieve cohort from database', res);
         }
     } catch (err) {
-        res
-            .status(500)
-            .json({err});
+        sendUserError(500, err, res);
     }
 });
 
+
 router.post('/', async(req, res) => {
-    const newCohort = req.body;
-    if (newCohort.name) {
-        try {
-            const cohort = await cohortsDb.insert(newCohort);
-            res
-                .status(200)
-                .json(cohort);
-        } catch (err) {
-            res
-                .status(500)
-                .json({err})
-        };
-    } else {
-        res
-            .status(400)
-            .json({message: 'Please provide name of cohort'})
+    const {name} = req.body;
+    try {
+        if (!name) {
+            sendUserError(400, 'Please provide name and for cohort', res);
+        }
+        const cohort = await cohortsDb
+            .insert({name})
+            .then(response => {
+                res
+                    .status(201)
+                    .json(response);
+            });
+    } catch (err) {
+        sendUserError(500, err, res);
     }
 });
 
 router.delete('/:id', async(req, res) => {
     try {
         const {id} = req.params;
-        const deleteCohort = await cohortsDb.remove(id);
-        if (req.body.length > 0) {
-            res
-                .status(404)
-                .json({message: 'cohort not found'})
-        } else {
-            res
-                .status(201)
-                .json({message: 'cohort deleted'})
-        }
+        const deleteCohort = await cohortsDb
+            .remove(id)
+            .then(response => {
+                if (response === 0) {
+                    sendUserError(404, 'The cohort with the specified ID does not exist', res);
+                }
+                res
+                    .json(201)
+                    .json({message: 'Cohort has been removed from database'})
+            })
+            // not very proficient, going to refactor
+            .catch(error => {
+                console.log(error);
+            })
     } catch (err) {
-        res
-            .status(500)
-            .json({err})
+        sendUserError(500, err, res);
     }
 });
 
@@ -93,14 +92,10 @@ router.put('/:id', async(req, res) => {
                     .status(200)
                     .json(cohort);
             } else {
-                res
-                    .status(404)
-                    .json({message: 'cohort not found in database'})
+                sendUserError(404, 'cohort not found in database', res);
             }
         } catch (err) {
-            res
-                .status(500)
-                .json({err});
+            sendUserError(500, err, res);
         }
     }
 });
